@@ -43,22 +43,26 @@ public class X402PaymentEnforcerTests
     }
 
     public int VerifyCalls { get; private set; }
+    public string? LastFacilitatorUrl { get; private set; }
 
     public void Initialize(string resourcePath, PaymentRequirements requirements) { }
 
     public void RegisterSchemeVerifier(string scheme, Func<PaymentPayload, Task<VerifyResponse>> verifier) { }
 
+    public void RegisterFacilitatedScheme(string scheme) { }
+
     public void RegisterHooks(X402.Core.Roles.Hooks.IServerHooks hooks) { }
 
-    public Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload)
+    public Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload, string? facilitatorUrl = null)
     {
       VerifyCalls++;
+      LastFacilitatorUrl = facilitatorUrl;
       return Task.FromResult(_verifyResult
           ? new VerifyResponse(true, null, "0xpayer")
           : new VerifyResponse(false, "INVALID", null));
     }
 
-    public Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload) =>
+    public Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload, string? facilitatorUrl = null) =>
         Task.FromResult(new SettleResponse(true, "0xtx", "eip155:84532", null, null, null));
 
     public Task<PaymentRequirements?> GetRequirementsAsync(string resourcePath) =>
@@ -94,5 +98,41 @@ public class X402PaymentEnforcerTests
     Assert.Equal("0xpayer", ctx.Items[X402HttpContextKeys.Payer]);
     Assert.True(ctx.Items.ContainsKey(X402HttpContextKeys.Payload));
     Assert.Equal(true, ctx.Items[X402HttpContextKeys.Verified]);
+  }
+
+  [Fact]
+  public async Task ValidPaymentHeader_UsesDefaultFacilitatorUrlFromRuntimeOptions()
+  {
+    var server = new FakeResourceServer(verifyResult: true);
+    var enforcer = new X402PaymentEnforcer(server, new X402RuntimeOptions
+    {
+      DefaultFacilitatorUrl = "https://default-facilitator.example.com"
+    });
+    var ctx = MakeContext("/api/premium", MakePaymentHeader());
+
+    var allowed = await enforcer.EnforceAsync(ctx, MakeRequirements(), "/api/premium");
+
+    Assert.True(allowed);
+    Assert.Equal("https://default-facilitator.example.com", server.LastFacilitatorUrl);
+  }
+
+  [Fact]
+  public async Task ValidPaymentHeader_ExplicitFacilitatorUrlOverridesDefault()
+  {
+    var server = new FakeResourceServer(verifyResult: true);
+    var enforcer = new X402PaymentEnforcer(server, new X402RuntimeOptions
+    {
+      DefaultFacilitatorUrl = "https://default-facilitator.example.com"
+    });
+    var ctx = MakeContext("/api/premium", MakePaymentHeader());
+
+    var allowed = await enforcer.EnforceAsync(
+        ctx,
+        MakeRequirements(),
+        "/api/premium",
+        "https://route-facilitator.example.com");
+
+    Assert.True(allowed);
+    Assert.Equal("https://route-facilitator.example.com", server.LastFacilitatorUrl);
   }
 }

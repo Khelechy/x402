@@ -21,8 +21,7 @@ public static class X402RouteHandlerBuilderExtensions
     builder.AddEndpointFilter(async (context, next) =>
     {
       if (context.HttpContext.Items.TryGetValue(X402HttpContextKeys.Verified, out var verifiedObj)
-          && verifiedObj is bool verified
-          && verified)
+          && verifiedObj is bool and true)
         return await next(context);
 
       var enforcer = context.HttpContext.RequestServices.GetRequiredService<X402PaymentEnforcer>();

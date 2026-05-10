@@ -58,7 +58,11 @@ public sealed class X402PaymentMiddleware
       return;
     }
 
-    var allowed = await _enforcer.EnforceAsync(context, route.Requirements, route.Path);
+    var allowed = await _enforcer.EnforceAsync(
+      context,
+      route.Requirements,
+      route.Path,
+      route.FacilitatorUrl ?? _options.DefaultFacilitatorUrl);
     if (!allowed)
       return;
 

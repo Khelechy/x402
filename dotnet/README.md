@@ -69,6 +69,27 @@ app.MapGet("/api/premium/data", () => "You paid!");
 app.Run();
 ```
 
+### Facilitator-backed verification via `AddX402(...)`
+
+If you want verification to delegate to an external facilitator instead of the local verifier,
+configure it at DI registration time:
+
+```csharp
+using X402.AspNetCore;
+using X402.Mechanisms.Evm;
+
+builder.Services.AddX402(options =>
+{
+    options
+        .UseHttpFacilitator("https://x402.org/facilitator")
+        .RegisterFacilitatedScheme(EvmSchemes.Exact);
+});
+```
+
+This keeps the ASP.NET Core integration the same (`UseX402Payment(...)`, `.RequireX402Payment(...)`,
+or `[RequireX402Payment(...)]`) while switching verification for the registered scheme to the
+configured facilitator client.
+
 ### Route annotations (usability)
 
 You can now protect routes where they are declared instead of only using path-prefix
@@ -141,7 +162,7 @@ How this works today:
 
 - `DefaultFacilitatorUrl` is a global fallback in route options.
 - `facilitatorUrl` on `Protect(...)` is a route-level override.
-- Middleware and route annotations currently enforce and verify payment locally via registered scheme verifiers.
+- Middleware and route annotations verify locally unless you configure facilitated schemes via `AddX402(...)`.
 - If you want to call an external facilitator endpoint directly, use `HttpFacilitatorTransport` and pass the same URL to `VerifyViaHttpAsync(...)` / `SettleViaHttpAsync(...)`.
 
 Direct facilitator call example:

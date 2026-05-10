@@ -6,6 +6,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/X402.Core.Tests/X402.Core.Tests.csproj" />
+    <Project Path="tests/X402.App/X402.App.csproj" />
     <Project Path="tests/X402.AspNetCore.Tests/X402.AspNetCore.Tests.csproj" />
     <Project Path="tests/X402.Mechanisms.Evm.Tests/X402.Mechanisms.Evm.Tests.csproj" />
   </Folder>

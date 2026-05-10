@@ -11,17 +11,28 @@ namespace X402.AspNetCore;
 public sealed class X402PaymentEnforcer
 {
   private readonly IX402ResourceServer _server;
+  private readonly X402RuntimeOptions _runtimeOptions;
 
   public X402PaymentEnforcer(IX402ResourceServer server)
+      : this(server, new X402RuntimeOptions())
+  {
+  }
+
+  public X402PaymentEnforcer(IX402ResourceServer server, X402RuntimeOptions runtimeOptions)
   {
     _server = server;
+    _runtimeOptions = runtimeOptions;
   }
 
   /// <summary>
   /// Enforces x402 payment requirements for the current request.
   /// Returns <c>true</c> when the request may continue to the handler.
   /// </summary>
-  public async Task<bool> EnforceAsync(HttpContext context, PaymentRequirements requirements, string? resourcePath = null)
+  public async Task<bool> EnforceAsync(
+      HttpContext context,
+      PaymentRequirements requirements,
+      string? resourcePath = null,
+      string? facilitatorUrl = null)
   {
     ArgumentNullException.ThrowIfNull(context);
     ArgumentNullException.ThrowIfNull(requirements);
@@ -60,7 +71,7 @@ public sealed class X402PaymentEnforcer
     VerifyResponse verifyResult;
     try
     {
-      verifyResult = await _server.VerifyPaymentAsync(payload);
+      verifyResult = await _server.VerifyPaymentAsync(payload, facilitatorUrl ?? _runtimeOptions.DefaultFacilitatorUrl);
     }
     catch
     {

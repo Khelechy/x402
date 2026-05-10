@@ -10,13 +10,31 @@ namespace X402.Core.Roles;
 /// </summary>
 public class X402ResourceServer : IX402ResourceServer
 {
+  private readonly IX402FacilitatorClient? _facilitatorClient;
+  private readonly string? _defaultFacilitatorUrl;
   private readonly Dictionary<string, Func<PaymentPayload, Task<VerifyResponse>>> _verifiers = [];
+  private readonly HashSet<string> _facilitatedSchemes = [];
   private readonly Dictionary<string, PaymentRequirements> _requirements = [];
   private IServerHooks? _hooks;
+
+  public X402ResourceServer()
+  {
+  }
+
+  public X402ResourceServer(IX402FacilitatorClient? facilitatorClient, string? defaultFacilitatorUrl = null)
+  {
+    _facilitatorClient = facilitatorClient;
+    _defaultFacilitatorUrl = defaultFacilitatorUrl;
+  }
 
   public void RegisterSchemeVerifier(string scheme, Func<PaymentPayload, Task<VerifyResponse>> verifier)
   {
     _verifiers[scheme] = verifier;
+  }
+
+  public void RegisterFacilitatedScheme(string scheme)
+  {
+    _facilitatedSchemes.Add(scheme);
   }
 
   public void Initialize(string resourcePath, PaymentRequirements requirements)
@@ -29,7 +47,7 @@ public class X402ResourceServer : IX402ResourceServer
     _hooks = hooks;
   }
 
-  public async Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload)
+  public async Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload, string? facilitatorUrl = null)
   {
     var context = new ServerHookContext { Payload = payload };
 
@@ -48,11 +66,20 @@ public class X402ResourceServer : IX402ResourceServer
       // Lookup verifier for scheme
       if (!_verifiers.TryGetValue(payload.Accepted.Scheme, out var verifier))
       {
-        throw new VerifyError("UNSUPPORTED_SCHEME", $"No verifier registered for scheme: {payload.Accepted.Scheme}");
+        if (_facilitatedSchemes.Contains(payload.Accepted.Scheme) && _facilitatorClient is not null)
+        {
+          context.VerifyResponse = await _facilitatorClient.VerifyAsync(payload, facilitatorUrl ?? _defaultFacilitatorUrl);
+        }
+        else
+        {
+          throw new VerifyError("UNSUPPORTED_SCHEME", $"No verifier registered for scheme: {payload.Accepted.Scheme}");
+        }
       }
-
-      // Verify payload
-      context.VerifyResponse = await verifier(payload);
+      else
+      {
+        // Verify payload
+        context.VerifyResponse = await verifier(payload);
+      }
 
       // Execute after hooks
       if (_hooks != null)
@@ -79,8 +106,11 @@ public class X402ResourceServer : IX402ResourceServer
     }
   }
 
-  public virtual Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload)
+  public virtual Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload, string? facilitatorUrl = null)
   {
+    if (_facilitatedSchemes.Contains(payload.Accepted.Scheme) && _facilitatorClient is not null)
+      return _facilitatorClient.SettleAsync(payload, facilitatorUrl ?? _defaultFacilitatorUrl);
+
     // Subclasses should override to provide actual settlement logic
     throw new NotImplementedException("SettlePaymentAsync must be implemented by derived class");
   }

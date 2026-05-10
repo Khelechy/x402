@@ -64,14 +64,16 @@ public class X402PaymentMiddlewareTests
 
     public void RegisterSchemeVerifier(string scheme, Func<PaymentPayload, Task<VerifyResponse>> verifier) { }
 
+    public void RegisterFacilitatedScheme(string scheme) { }
+
     public void RegisterHooks(X402.Core.Roles.Hooks.IServerHooks hooks) { }
 
-    public Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload) =>
+    public Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload, string? facilitatorUrl = null) =>
         Task.FromResult(_verifyResult
             ? new VerifyResponse(true, null, "0xpayer")
             : new VerifyResponse(false, _invalidReason ?? "INVALID", null));
 
-    public Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload) =>
+    public Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload, string? facilitatorUrl = null) =>
         Task.FromResult(new SettleResponse(true, "0xtx", "eip155:84532", null, null, null));
 
     public Task<PaymentRequirements?> GetRequirementsAsync(string resourcePath) =>

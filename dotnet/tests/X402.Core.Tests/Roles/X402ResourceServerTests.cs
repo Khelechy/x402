@@ -97,6 +97,34 @@ public class X402ResourceServerTests
   }
 
   [Fact]
+  public async Task VerifyPaymentAsync_FacilitatedScheme_UsesConfiguredClient()
+  {
+    var client = new FakeFacilitatorClient();
+    var server = new X402ResourceServer(client);
+    var payload = CreateTestPayload();
+
+    server.RegisterFacilitatedScheme("evm-exact");
+    var result = await server.VerifyPaymentAsync(payload, "https://facilitator.example.com");
+
+    Assert.True(result.IsValid);
+    Assert.Equal("https://facilitator.example.com", client.LastVerifyUrl);
+  }
+
+  [Fact]
+  public async Task SettlePaymentAsync_FacilitatedScheme_UsesConfiguredClient()
+  {
+    var client = new FakeFacilitatorClient();
+    var server = new X402ResourceServer(client);
+    var payload = CreateTestPayload();
+
+    server.RegisterFacilitatedScheme("evm-exact");
+    var result = await server.SettlePaymentAsync(payload, "https://facilitator.example.com");
+
+    Assert.True(result.Success);
+    Assert.Equal("https://facilitator.example.com", client.LastSettleUrl);
+  }
+
+  [Fact]
   public async Task VerifyPaymentAsync_ThrowsForUnregisteredScheme()
   {
     var server = new X402ResourceServer();
@@ -223,5 +251,23 @@ public class X402ResourceServerTests
 
     public Task OnVerifyFailureAsync(ServerHookContext context) =>
         OnVerifyFailureAction?.Invoke(context) ?? Task.CompletedTask;
+  }
+
+  private sealed class FakeFacilitatorClient : IX402FacilitatorClient
+  {
+    public string? LastVerifyUrl { get; private set; }
+    public string? LastSettleUrl { get; private set; }
+
+    public Task<VerifyResponse> VerifyAsync(PaymentPayload payload, string? facilitatorUrl = null)
+    {
+      LastVerifyUrl = facilitatorUrl;
+      return Task.FromResult(CreateValidVerifyResponse("0xfacilitated"));
+    }
+
+    public Task<SettleResponse> SettleAsync(PaymentPayload payload, string? facilitatorUrl = null)
+    {
+      LastSettleUrl = facilitatorUrl;
+      return Task.FromResult(new SettleResponse(true, "0xtx", "eip155:84532", null, "0xfacilitated", payload.Accepted.Amount));
+    }
   }
 }
