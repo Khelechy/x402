@@ -14,7 +14,7 @@ x402 lets an HTTP server require a cryptocurrency payment before serving a respo
 The standard flow:
 
 1. Client requests a resource → server replies `402 Payment Required` + payment details in header.
-2. Client creates a signed payment payload and retries with an `X-PAYMENT` header.
+2. Client creates a signed payment payload and retries with a `PAYMENT-SIGNATURE` header.
 3. Server (or a facilitator) verifies the signature off-chain, serves the resource, then settles on-chain.
 
 ---
@@ -89,6 +89,7 @@ builder.Services.AddX402(options =>
 This keeps the ASP.NET Core integration the same (`UseX402Payment(...)`, `.RequireX402Payment(...)`,
 or `[RequireX402Payment(...)]`) while switching verification for the registered scheme to the
 configured facilitator client.
+
 
 ### Route annotations (usability)
 
@@ -173,7 +174,7 @@ using X402.Core.Transport.Http.Adapters;
 
 var facilitatorUrl = "https://facilitator.example.com";
 
-// Usually this comes from PAYMENT-RESPONSE header decoding.
+// Usually this comes from PAYMENT-SIGNATURE header decoding on the protected request.
 PaymentPayload payload = /* your decoded payload */;
 
 using var httpClient = new HttpClient();
@@ -208,8 +209,8 @@ using X402.Core.Transport.Http;
 using X402.Core.Protocol.V2;
 using X402.Mechanisms.Evm.Exact;
 
-// Decode the X-PAYMENT header from the incoming request
-var payload = HeaderCodec.Decode<PaymentPayload>(request.Headers["X-PAYMENT"]);
+// Decode the PAYMENT-SIGNATURE header from the incoming request
+var payload = HeaderCodec.Decode<PaymentPayload>(request.Headers["PAYMENT-SIGNATURE"]);
 
 var result = EvmExactVerifier.Verify(payload);
 if (!result.IsValid)
@@ -217,6 +218,32 @@ if (!result.IsValid)
 else
     Console.WriteLine($"Accepted — payer: {result.Payer}");
 ```
+
+### Buyer-side payment creation
+
+```csharp
+using X402.Core.Protocol.V2;
+using X402.Core.Roles;
+using X402.Core.Transport.Http;
+using X402.Core.Transport.Http.Adapters;
+using X402.Mechanisms.Evm.Exact;
+
+var client = new X402Client()
+    .RegisterEvmExact(new PrivateKeyEvmExactClientSigner("0xYOUR_PRIVATE_KEY"));
+
+using var transport = new HttpClientTransport(client, new HttpClient());
+
+// Read the PAYMENT-REQUIRED header from a 402 response.
+var paymentPayload = await transport.HandlePaymentRequiredAsync(paymentRequiredHeader);
+
+using var retry = new HttpRequestMessage(HttpMethod.Get, protectedUrl);
+retry.Headers.Add(X402HttpHeaders.PaymentSignature, HeaderCodec.Encode(paymentPayload));
+
+using var paidResponse = await httpClient.SendAsync(retry);
+```
+
+For `evm-exact`, the `PaymentRequirements.Extra` metadata must include the EIP-712 domain
+`name` and `version` fields for the token contract.
 
 ---
 
@@ -251,7 +278,7 @@ else
 
 - **Framework-agnostic core** — `X402.Core` has zero framework dependencies; works with any host.
 - **Pluggable mechanisms** — register any scheme via `RegisterSchemeVerifier(scheme, handler)`.
-- **Transport layer** — `HeaderCodec` handles `X-PAYMENT` / `X-PAYMENT-RESPONSE` Base64-JSON encoding.
+- **Transport layer** — `HeaderCodec` handles `PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, and `PAYMENT-RESPONSE` Base64-JSON encoding.
 - **Lifecycle hooks** — attach `IServerHooks` / `IClientHooks` / `IFacilitatorHooks` for logging, metrics, and custom logic without modifying core behaviour.
 
 ---

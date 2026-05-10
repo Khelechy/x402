@@ -10,14 +10,16 @@ namespace X402.Core.Transport.Http.Adapters;
 /// HTTP transport adapter for x402 Client role.
 /// Handles sending payment payloads via HTTP and parsing server responses.
 /// </summary>
-public class HttpClientTransport
+public class HttpClientTransport : IDisposable
 {
   private readonly IX402Client _client;
   private readonly HttpClient _httpClient;
+  private readonly bool _ownsHttpClient;
 
   public HttpClientTransport(IX402Client client, HttpClient? httpClient = null)
   {
     _client = client;
+    _ownsHttpClient = httpClient is null;
     _httpClient = httpClient ?? new HttpClient();
   }
 
@@ -38,11 +40,8 @@ public class HttpClientTransport
         throw new InvalidOperationException("No payment requirements found in header");
       }
 
-      // Use first accepted requirement (client could negotiate if multiple)
-      var requirements = paymentRequired.Accepts[0];
-
-      // Create payment payload using registered scheme handler
-      var payload = await _client.CreatePaymentPayloadAsync(requirements);
+      // Delegate option selection to the client.
+      var payload = await _client.CreatePaymentPayloadAsync(paymentRequired.Accepts);
 
       return payload;
     }
@@ -67,7 +66,7 @@ public class HttpClientTransport
 
       // Create HTTP request with payload in header
       using var request = new HttpRequestMessage(HttpMethod.Post, resourceUrl);
-      request.Headers.Add(X402HttpHeaders.PaymentResponse, base64Payload);
+      request.Headers.Add(X402HttpHeaders.PaymentSignature, base64Payload);
 
       // Send request
       using var response = await _httpClient.SendAsync(request);
@@ -98,7 +97,7 @@ public class HttpClientTransport
       var base64Payload = HeaderCodec.Encode(payload);
 
       using var request = new HttpRequestMessage(HttpMethod.Get, resourceUrl);
-      request.Headers.Add(X402HttpHeaders.PaymentResponse, base64Payload);
+      request.Headers.Add(X402HttpHeaders.PaymentSignature, base64Payload);
 
       var response = await _httpClient.SendAsync(request);
       return response;
@@ -114,6 +113,9 @@ public class HttpClientTransport
   /// </summary>
   public void Dispose()
   {
-    _httpClient?.Dispose();
+    if (_ownsHttpClient)
+    {
+      _httpClient.Dispose();
+    }
   }
 }

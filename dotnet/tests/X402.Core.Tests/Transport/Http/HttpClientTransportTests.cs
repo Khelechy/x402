@@ -54,6 +54,26 @@ public class HttpClientTransportTests
   }
 
   [Fact]
+  public async Task HandlePaymentRequiredAsync_SelectsSupportedRequirement()
+  {
+    var paymentRequired = new PaymentRequired(2, [
+        CreateTestRequirements() with { Scheme = "svm-exact" },
+        CreateTestRequirements()
+    ]);
+    var base64Header = HeaderCodec.Encode(paymentRequired);
+
+    var mockClient = new X402Client();
+    var testPayload = CreateTestPayload();
+    mockClient.RegisterSchemeHandler("evm-exact", _ => Task.FromResult(testPayload));
+
+    var transport = new HttpClientTransport(mockClient);
+
+    var result = await transport.HandlePaymentRequiredAsync(base64Header);
+
+    Assert.Equal("evm-exact", result.Accepted.Scheme);
+  }
+
+  [Fact]
   public async Task HandlePaymentRequiredAsync_EmptyHeader_ThrowsException()
   {
     // Arrange
@@ -84,7 +104,8 @@ public class HttpClientTransportTests
     // Assert
     Assert.True(result);
     Assert.NotNull(mockHandler.LastRequest);
-    Assert.True(mockHandler.LastRequest.Headers.Contains(X402HttpHeaders.PaymentResponse));
+    Assert.True(mockHandler.LastRequest.Headers.Contains(X402HttpHeaders.PaymentSignature));
+    Assert.False(mockHandler.LastRequest.Headers.Contains(X402HttpHeaders.PaymentResponse));
   }
 
   [Fact]
@@ -105,6 +126,9 @@ public class HttpClientTransportTests
     // Assert
     Assert.NotNull(result);
     Assert.True(result.IsSuccessStatusCode);
+    Assert.NotNull(mockHandler.LastRequest);
+    Assert.True(mockHandler.LastRequest.Headers.Contains(X402HttpHeaders.PaymentSignature));
+    Assert.False(mockHandler.LastRequest.Headers.Contains(X402HttpHeaders.PaymentResponse));
   }
 
   private class MockHttpMessageHandler : HttpMessageHandler

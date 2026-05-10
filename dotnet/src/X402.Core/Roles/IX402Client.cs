@@ -29,6 +29,14 @@ public interface IX402Client
   void RegisterHooks(IClientHooks hooks);
 
   /// <summary>
+  /// Create a payment payload from a set of offered requirements.
+  /// Selects a supported requirement and creates a signed payment payload.
+  /// </summary>
+  /// <param name="requirements">Payment requirements offered by the resource server</param>
+  /// <returns>Signed payment payload ready for settlement</returns>
+  Task<PaymentPayload> CreatePaymentPayloadAsync(IReadOnlyList<PaymentRequirements> requirements);
+
+  /// <summary>
   /// Create a payment payload from requirements.
   /// Negotiates with registered handlers and applies policies.
   /// </summary>

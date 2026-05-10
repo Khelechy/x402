@@ -14,6 +14,25 @@ public class X402Client : IX402Client
   private readonly Dictionary<string, Func<PaymentPayload, Task<bool>>> _policies = [];
   private IClientHooks? _hooks;
 
+  public Task<PaymentPayload> CreatePaymentPayloadAsync(IReadOnlyList<PaymentRequirements> requirements)
+  {
+    if (requirements.Count == 0)
+    {
+      throw new PaymentError("UNSUPPORTED_SCHEME", "No payment requirements were provided");
+    }
+
+    var selectedRequirement = requirements.FirstOrDefault(requirement => _schemeHandlers.ContainsKey(requirement.Scheme));
+    if (selectedRequirement is null)
+    {
+      var offeredSchemes = string.Join(", ", requirements.Select(requirement => requirement.Scheme).Distinct(StringComparer.Ordinal));
+      throw new PaymentError(
+          "UNSUPPORTED_SCHEME",
+          $"No handler registered for offered schemes: {offeredSchemes}");
+    }
+
+    return CreatePaymentPayloadAsync(selectedRequirement);
+  }
+
   public void RegisterSchemeHandler(string scheme, Func<PaymentRequirements, Task<PaymentPayload>> handler)
   {
     _schemeHandlers[scheme] = handler;

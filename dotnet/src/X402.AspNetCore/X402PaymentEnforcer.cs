@@ -41,7 +41,7 @@ public sealed class X402PaymentEnforcer
 
     _server.Initialize(path, requirements);
 
-    if (!context.Request.Headers.TryGetValue(X402HttpHeaders.PaymentResponse, out var headerValues)
+    if (!context.Request.Headers.TryGetValue(X402HttpHeaders.PaymentSignature, out var headerValues)
         || string.IsNullOrEmpty(headerValues))
     {
       var paymentRequired = new PaymentRequired(2, [requirements]);

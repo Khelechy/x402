@@ -68,6 +68,42 @@ public class X402ClientTests
   }
 
   [Fact]
+  public async Task CreatePaymentPayloadAsync_MultipleRequirements_SelectsSupportedScheme()
+  {
+    var client = new X402Client();
+    var unsupported = CreateTestRequirements("svm-exact");
+    var supported = CreateTestRequirements("evm-exact");
+    var expectedPayload = CreateTestPayload();
+
+    client.RegisterSchemeHandler("evm-exact", requirement =>
+    {
+      Assert.Equal("evm-exact", requirement.Scheme);
+      return Task.FromResult(expectedPayload);
+    });
+
+    var result = await client.CreatePaymentPayloadAsync([unsupported, supported]);
+
+    Assert.Equal(expectedPayload, result);
+  }
+
+  [Fact]
+  public async Task CreatePaymentPayloadAsync_MultipleRequirements_ThrowsWhenNoSchemeSupported()
+  {
+    var client = new X402Client();
+
+    var ex = await Assert.ThrowsAsync<PaymentError>(
+        () => client.CreatePaymentPayloadAsync([
+            CreateTestRequirements("svm-exact"),
+            CreateTestRequirements("aptos-exact")
+        ])
+    );
+
+    Assert.Equal("UNSUPPORTED_SCHEME", ex.ErrorCode);
+    Assert.Contains("svm-exact", ex.Message);
+    Assert.Contains("aptos-exact", ex.Message);
+  }
+
+  [Fact]
   public async Task CreatePaymentPayloadAsync_ThrowsForUnregisteredScheme()
   {
     var client = new X402Client();

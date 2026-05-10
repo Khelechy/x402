@@ -28,7 +28,7 @@ public class X402PaymentMiddlewareTests
     ctx.Request.Path = path;
     ctx.Response.Body = new System.IO.MemoryStream();
     if (paymentHeader is not null)
-      ctx.Request.Headers.Append(X402HttpHeaders.PaymentResponse, paymentHeader);
+      ctx.Request.Headers.Append(X402HttpHeaders.PaymentSignature, paymentHeader);
     return ctx;
   }
 

@@ -9,7 +9,7 @@ namespace X402.AspNetCore;
 ///
 /// Flow:
 ///   1. If the request path is not protected → pass through.
-///   2. If the request lacks an x402-Payment-Response header → respond 402 with PaymentRequired.
+///   2. If the request lacks a PAYMENT-SIGNATURE header → respond 402 with PaymentRequired.
 ///   3. Decode and verify the payment payload via the registered <see cref="IX402ResourceServer"/>.
 ///   4. If verification fails → respond 403.
 ///   5. If verification succeeds → attach payer metadata and call the next delegate.

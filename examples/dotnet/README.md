@@ -15,7 +15,7 @@ All three examples default to local `ProjectReference` entries so they build aga
 1. Start one of the example servers with `dotnet run` from its directory.
 2. Request the protected endpoint without payment and inspect the `PAYMENT-REQUIRED` response header.
 3. Generate a signed x402 payment with a client implementation.
-4. Retry the same request with the `PAYMENT-RESPONSE` header set to the signed payload.
+4. Retry the same request with the `PAYMENT-SIGNATURE` header set to the signed payload.
 
 The examples intentionally stop at the resource-server boundary. They register the local off-chain `evm-exact` verifier and leave payment creation to a client implementation.
 
