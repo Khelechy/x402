@@ -1,6 +1,7 @@
 import { BaseProxy, RunConfig } from '../proxy-base';
 import { ServerProxy, ServerConfig } from '../types';
 import { verboseLog, errorLog } from '../logger';
+import { resolveEvmPermit2Asset } from '../networks/networks';
 
 export interface ProtectedResponse {
   message: string;
@@ -73,8 +74,8 @@ export class GenericServerProxy extends BaseProxy implements ServerProxy {
     verboseLog(`  📂 Server directory: ${this.directory}, isV1: ${isV1Server}`);
 
     // For legacy servers, translate CAIP-2 to v1 network names
-    let evmNetwork = config.networks.evm.caip2;
-    let svmNetwork = config.networks.svm.caip2;
+    let evmNetwork: string = config.networks.evm.caip2;
+    let svmNetwork: string = config.networks.svm.caip2;
 
     if (isV1Server) {
       evmNetwork = translateNetworkForV1(config.networks.evm.caip2);
@@ -92,7 +93,7 @@ export class GenericServerProxy extends BaseProxy implements ServerProxy {
         EVM_NETWORK: evmNetwork,
         EVM_RPC_URL: config.networks.evm.rpcUrl,
         EVM_PAYEE_ADDRESS: config.evmPayTo,
-        EVM_PERMIT2_ASSET: config.networks.evm.permit2Asset || '',
+        EVM_PERMIT2_ASSET: resolveEvmPermit2Asset(config.networks),
 
         // SVM network config
         SVM_NETWORK: svmNetwork,
@@ -124,9 +125,20 @@ export class GenericServerProxy extends BaseProxy implements ServerProxy {
         STELLAR_RPC_URL: config.networks.stellar.rpcUrl,
         STELLAR_PAYEE_ADDRESS: config.stellarPayTo,
 
+        // TVM network config
+        TVM_NETWORK: config.networks.tvm.caip2,
+        TVM_PAYEE_ADDRESS: config.tvmPayTo,
+
         // Facilitator
         FACILITATOR_URL: config.facilitatorUrl || '',
         MOCK_FACILITATOR_URL: config.mockFacilitatorUrl || '',
+
+        ...(config.batchSettlement
+          ? {
+              EVM_RECEIVER_AUTHORIZER_PRIVATE_KEY:
+                config.batchSettlement.receiverAuthorizerPrivateKey,
+            }
+          : {}),
       }
     };
 

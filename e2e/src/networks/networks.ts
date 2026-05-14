@@ -6,7 +6,7 @@
  */
 
 export type NetworkMode = 'testnet' | 'mainnet';
-export type ProtocolFamily = 'evm' | 'svm' | 'avm' | 'aptos' | 'hedera' | 'stellar';
+export type ProtocolFamily = 'evm' | 'svm' | 'avm' | 'aptos' | 'hedera' | 'stellar' | 'tvm';
 
 export type NetworkConfig = {
   name: string;
@@ -22,6 +22,7 @@ export type NetworkSet = {
   aptos: NetworkConfig;
   hedera: NetworkConfig;
   stellar: NetworkConfig;
+  tvm: NetworkConfig;
 };
 
 /**
@@ -60,6 +61,11 @@ const NETWORK_SETS: Record<NetworkMode, NetworkSet> = {
       caip2: 'stellar:testnet',
       rpcUrl: process.env.STELLAR_TESTNET_RPC_URL || 'https://soroban-testnet.stellar.org',
     },
+    tvm: {
+      name: 'TON Testnet',
+      caip2: 'tvm:-3',
+      rpcUrl: process.env.TONCENTER_TESTNET_BASE_URL || 'https://testnet.toncenter.com',
+    },
   },
   mainnet: {
     evm: {
@@ -93,6 +99,11 @@ const NETWORK_SETS: Record<NetworkMode, NetworkSet> = {
       caip2: 'stellar:pubnet',
       rpcUrl: process.env.STELLAR_RPC_URL || 'https://mainnet.sorobanrpc.com',
     },
+    tvm: {
+      name: 'TON Mainnet',
+      caip2: 'tvm:-239',
+      rpcUrl: process.env.TONCENTER_MAINNET_BASE_URL || 'https://toncenter.com',
+    },
   },
 };
 
@@ -107,10 +118,27 @@ export function getNetworkSet(mode: NetworkMode): NetworkSet {
 }
 
 /**
+ * Permit2-priced routes read `process.env.EVM_PERMIT2_ASSET` in server processes.
+ * Use the same resolution here and when spawning resource servers (`generic-server`)
+ * so cold-start revoke/approve targets the token those routes bill.
+ *
+ * Precedence: non-empty `EVM_PERMIT2_ASSET`, then `networks.evm.permit2Asset`.
+ * When the env var is unset, defaults are Base Sepolia USDC (`eip155:84532`) and
+ * Base mainnet USDC (`eip155:8453`) from {@link NETWORK_SETS}.
+ */
+export function resolveEvmPermit2Asset(networks: NetworkSet): string {
+  const fromEnv = process.env.EVM_PERMIT2_ASSET?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+  return (networks.evm.permit2Asset ?? '').trim();
+}
+
+/**
  * Get network config for a protocol family in a given mode
  * 
  * @param mode - 'testnet' or 'mainnet'
- * @param protocolFamily - 'evm', 'svm', 'avm', 'aptos', 'hedera', or 'stellar'
+ * @param protocolFamily - 'evm', 'svm', 'avm', 'aptos', 'hedera', 'stellar', or 'tvm'
  * @returns NetworkConfig for the specified protocol
  */
 export function getNetworkForProtocol(
@@ -128,6 +156,6 @@ export function getNetworkForProtocol(
  */
 export function getNetworkModeDescription(mode: NetworkMode): string {
   const set = NETWORK_SETS[mode];
-  const networks = [set.evm.name, set.svm.name, set.avm.name, set.aptos.name, set.hedera.name, set.stellar.name];
+  const networks = [set.evm.name, set.svm.name, set.avm.name, set.aptos.name, set.hedera.name, set.stellar.name, set.tvm.name];
   return networks.join(' + ');
 }
