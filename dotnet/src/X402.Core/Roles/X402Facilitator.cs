@@ -10,134 +10,134 @@ namespace X402.Core.Roles;
 /// </summary>
 public class X402Facilitator : IX402Facilitator
 {
-  private readonly Dictionary<string, Func<PaymentPayload, Task<VerifyResponse>>> _verifiers = [];
-  private readonly Dictionary<string, Func<PaymentPayload, Task<SettleResponse>>> _settlers = [];
-  private readonly Dictionary<string, Func<Dictionary<string, object?>, Task>> _extensions = [];
-  private IFacilitatorHooks? _hooks;
+    private readonly Dictionary<string, Func<PaymentPayload, Task<VerifyResponse>>> _verifiers = [];
+    private readonly Dictionary<string, Func<PaymentPayload, Task<SettleResponse>>> _settlers = [];
+    private readonly Dictionary<string, Func<Dictionary<string, object?>, Task>> _extensions = [];
+    private IFacilitatorHooks? _hooks;
 
-  public void RegisterSchemeVerifier(string scheme, Func<PaymentPayload, Task<VerifyResponse>> verifier)
-  {
-    _verifiers[scheme] = verifier;
-  }
-
-  public void RegisterSchemeSettler(string scheme, Func<PaymentPayload, Task<SettleResponse>> settler)
-  {
-    _settlers[scheme] = settler;
-  }
-
-  public void RegisterExtension(string extensionName, Func<Dictionary<string, object?>, Task> handler)
-  {
-    _extensions[extensionName] = handler;
-  }
-
-  public void RegisterHooks(IFacilitatorHooks hooks)
-  {
-    _hooks = hooks;
-  }
-
-  public async Task<VerifyResponse> VerifyAsync(PaymentPayload payload)
-  {
-    var context = new FacilitatorHookContext { Payload = payload, OperationType = "verify" };
-
-    try
+    public void RegisterSchemeVerifier(string scheme, Func<PaymentPayload, Task<VerifyResponse>> verifier)
     {
-      // Execute before hooks
-      if (_hooks != null)
-      {
-        await _hooks.BeforeVerifyAsync(context);
-        if (context.ShouldAbort)
+        _verifiers[scheme] = verifier;
+    }
+
+    public void RegisterSchemeSettler(string scheme, Func<PaymentPayload, Task<SettleResponse>> settler)
+    {
+        _settlers[scheme] = settler;
+    }
+
+    public void RegisterExtension(string extensionName, Func<Dictionary<string, object?>, Task> handler)
+    {
+        _extensions[extensionName] = handler;
+    }
+
+    public void RegisterHooks(IFacilitatorHooks hooks)
+    {
+        _hooks = hooks;
+    }
+
+    public async Task<VerifyResponse> VerifyAsync(PaymentPayload payload)
+    {
+        var context = new FacilitatorHookContext { Payload = payload, OperationType = "verify" };
+
+        try
         {
-          throw new VerifyError("ABORTED_BY_HOOK", "Verification aborted by before hook");
+            // Execute before hooks
+            if (_hooks != null)
+            {
+                await _hooks.BeforeVerifyAsync(context);
+                if (context.ShouldAbort)
+                {
+                    throw new VerifyError("ABORTED_BY_HOOK", "Verification aborted by before hook");
+                }
+            }
+
+            // Lookup verifier for scheme
+            if (!_verifiers.TryGetValue(payload.Accepted.Scheme, out var verifier))
+            {
+                throw new VerifyError("UNSUPPORTED_SCHEME", $"No verifier registered for scheme: {payload.Accepted.Scheme}");
+            }
+
+            // Verify payload
+            context.VerifyResponse = await verifier(payload);
+
+            // Extensions processing deferred to Phase 3+
+            // TODO: Handle extension processing when extension handlers are formalized
+
+            // Execute after hooks
+            if (_hooks != null)
+            {
+                await _hooks.AfterVerifyAsync(context);
+            }
+
+            return context.VerifyResponse;
         }
-      }
-
-      // Lookup verifier for scheme
-      if (!_verifiers.TryGetValue(payload.Accepted.Scheme, out var verifier))
-      {
-        throw new VerifyError("UNSUPPORTED_SCHEME", $"No verifier registered for scheme: {payload.Accepted.Scheme}");
-      }
-
-      // Verify payload
-      context.VerifyResponse = await verifier(payload);
-
-      // Extensions processing deferred to Phase 3+
-      // TODO: Handle extension processing when extension handlers are formalized
-
-      // Execute after hooks
-      if (_hooks != null)
-      {
-        await _hooks.AfterVerifyAsync(context);
-      }
-
-      return context.VerifyResponse;
-    }
-    catch (Exception ex)
-    {
-      context.Error = ex;
-      if (_hooks != null)
-      {
-        await _hooks.OnVerifyFailureAsync(context);
-      }
-
-      if (ex is VerifyError)
-      {
-        throw;
-      }
-
-      throw new VerifyError("VERIFY_FAILED", ex.Message, null, ex.Message);
-    }
-  }
-
-  public async Task<SettleResponse> SettleAsync(PaymentPayload payload)
-  {
-    var context = new FacilitatorHookContext { Payload = payload, OperationType = "settle" };
-
-    try
-    {
-      // Execute before hooks
-      if (_hooks != null)
-      {
-        await _hooks.BeforeSettleAsync(context);
-        if (context.ShouldAbort)
+        catch (Exception ex)
         {
-          throw new SettleError("ABORTED_BY_HOOK", "Settlement aborted by before hook");
+            context.Error = ex;
+            if (_hooks != null)
+            {
+                await _hooks.OnVerifyFailureAsync(context);
+            }
+
+            if (ex is VerifyError)
+            {
+                throw;
+            }
+
+            throw new VerifyError("VERIFY_FAILED", ex.Message, null, ex.Message);
         }
-      }
-
-      // Lookup settler for scheme
-      if (!_settlers.TryGetValue(payload.Accepted.Scheme, out var settler))
-      {
-        throw new SettleError("UNSUPPORTED_SCHEME", $"No settler registered for scheme: {payload.Accepted.Scheme}");
-      }
-
-      // Settle payload
-      context.SettleResponse = await settler(payload);
-
-      // Extensions processing deferred to Phase 3+
-      // TODO: Handle extension processing when extension handlers are formalized
-
-      // Execute after hooks
-      if (_hooks != null)
-      {
-        await _hooks.AfterSettleAsync(context);
-      }
-
-      return context.SettleResponse;
     }
-    catch (Exception ex)
+
+    public async Task<SettleResponse> SettleAsync(PaymentPayload payload)
     {
-      context.Error = ex;
-      if (_hooks != null)
-      {
-        await _hooks.OnSettleFailureAsync(context);
-      }
+        var context = new FacilitatorHookContext { Payload = payload, OperationType = "settle" };
 
-      if (ex is SettleError)
-      {
-        throw;
-      }
+        try
+        {
+            // Execute before hooks
+            if (_hooks != null)
+            {
+                await _hooks.BeforeSettleAsync(context);
+                if (context.ShouldAbort)
+                {
+                    throw new SettleError("ABORTED_BY_HOOK", "Settlement aborted by before hook");
+                }
+            }
 
-      throw new SettleError("SETTLE_FAILED", ex.Message);
+            // Lookup settler for scheme
+            if (!_settlers.TryGetValue(payload.Accepted.Scheme, out var settler))
+            {
+                throw new SettleError("UNSUPPORTED_SCHEME", $"No settler registered for scheme: {payload.Accepted.Scheme}");
+            }
+
+            // Settle payload
+            context.SettleResponse = await settler(payload);
+
+            // Extensions processing deferred to Phase 3+
+            // TODO: Handle extension processing when extension handlers are formalized
+
+            // Execute after hooks
+            if (_hooks != null)
+            {
+                await _hooks.AfterSettleAsync(context);
+            }
+
+            return context.SettleResponse;
+        }
+        catch (Exception ex)
+        {
+            context.Error = ex;
+            if (_hooks != null)
+            {
+                await _hooks.OnSettleFailureAsync(context);
+            }
+
+            if (ex is SettleError)
+            {
+                throw;
+            }
+
+            throw new SettleError("SETTLE_FAILED", ex.Message);
+        }
     }
-  }
 }

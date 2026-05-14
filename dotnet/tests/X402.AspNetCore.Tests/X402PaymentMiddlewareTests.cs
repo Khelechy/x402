@@ -14,222 +14,222 @@ namespace X402.AspNetCore.Tests;
 /// </summary>
 public class X402PaymentMiddlewareTests
 {
-  // ─── helpers ───────────────────────────────────────────────────────────
+    // ─── helpers ───────────────────────────────────────────────────────────
 
-  private static PaymentRequirements MakeRequirements() =>
-      new("evm-exact", "eip155:84532", "0xtoken", "1000000000000000000", "0xrecipient", 60, null);
+    private static PaymentRequirements MakeRequirements() =>
+        new("evm-exact", "eip155:84532", "0xtoken", "1000000000000000000", "0xrecipient", 60, null);
 
-  private static X402MiddlewareOptions MakeOptions() =>
-      new X402MiddlewareOptions().Protect("/api/premium", MakeRequirements());
+    private static X402MiddlewareOptions MakeOptions() =>
+        new X402MiddlewareOptions().Protect("/api/premium", MakeRequirements());
 
-  private static HttpContext MakeContext(string path, string? paymentHeader = null)
-  {
-    var ctx = new DefaultHttpContext();
-    ctx.Request.Path = path;
-    ctx.Response.Body = new System.IO.MemoryStream();
-    if (paymentHeader is not null)
-      ctx.Request.Headers.Append(X402HttpHeaders.PaymentSignature, paymentHeader);
-    return ctx;
-  }
-
-  private static string MakePaymentHeader(FakeResourceServer? server = null)
-  {
-    var requirements = MakeRequirements();
-    var payload = new PaymentPayload(
-        2,
-        requirements,
-        new JsonObject { ["signature"] = "0xdeadbeef" },
-        null,
-        null
-    );
-    return HeaderCodec.Encode(payload);
-  }
-
-  // ─── fake server ───────────────────────────────────────────────────────
-
-  private sealed class FakeResourceServer : IX402ResourceServer
-  {
-    private readonly bool _verifyResult;
-    private readonly string? _invalidReason;
-    private PaymentRequirements? _stored;
-
-    public FakeResourceServer(bool verifyResult = true, string? invalidReason = null)
+    private static HttpContext MakeContext(string path, string? paymentHeader = null)
     {
-      _verifyResult = verifyResult;
-      _invalidReason = invalidReason;
+        var ctx = new DefaultHttpContext();
+        ctx.Request.Path = path;
+        ctx.Response.Body = new System.IO.MemoryStream();
+        if (paymentHeader is not null)
+            ctx.Request.Headers.Append(X402HttpHeaders.PaymentSignature, paymentHeader);
+        return ctx;
     }
 
-    public void Initialize(string resourcePath, PaymentRequirements requirements) =>
-        _stored = requirements;
+    private static string MakePaymentHeader(FakeResourceServer? server = null)
+    {
+        var requirements = MakeRequirements();
+        var payload = new PaymentPayload(
+            2,
+            requirements,
+            new JsonObject { ["signature"] = "0xdeadbeef" },
+            null,
+            null
+        );
+        return HeaderCodec.Encode(payload);
+    }
 
-    public void RegisterSchemeVerifier(string scheme, Func<PaymentPayload, Task<VerifyResponse>> verifier) { }
+    // ─── fake server ───────────────────────────────────────────────────────
 
-    public void RegisterFacilitatedScheme(string scheme) { }
+    private sealed class FakeResourceServer : IX402ResourceServer
+    {
+        private readonly bool _verifyResult;
+        private readonly string? _invalidReason;
+        private PaymentRequirements? _stored;
 
-    public void RegisterHooks(X402.Core.Roles.Hooks.IServerHooks hooks) { }
+        public FakeResourceServer(bool verifyResult = true, string? invalidReason = null)
+        {
+            _verifyResult = verifyResult;
+            _invalidReason = invalidReason;
+        }
 
-    public Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload, string? facilitatorUrl = null) =>
-        Task.FromResult(_verifyResult
-            ? new VerifyResponse(true, null, "0xpayer")
-            : new VerifyResponse(false, _invalidReason ?? "INVALID", null));
+        public void Initialize(string resourcePath, PaymentRequirements requirements) =>
+            _stored = requirements;
 
-    public Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload, string? facilitatorUrl = null) =>
-        Task.FromResult(new SettleResponse(true, "0xtx", "eip155:84532", null, null, null));
+        public void RegisterSchemeVerifier(string scheme, Func<PaymentPayload, Task<VerifyResponse>> verifier) { }
 
-    public Task<PaymentRequirements?> GetRequirementsAsync(string resourcePath) =>
-        Task.FromResult(_stored);
-  }
+        public void RegisterFacilitatedScheme(string scheme) { }
 
-  private static X402PaymentMiddleware MakeMiddleware(
-      RequestDelegate next,
-      FakeResourceServer? server = null,
-      X402MiddlewareOptions? options = null)
-  {
-    server ??= new FakeResourceServer();
-    options ??= MakeOptions();
-    var enforcer = new X402PaymentEnforcer(server);
-    return new X402PaymentMiddleware(next, options, server, enforcer);
-  }
+        public void RegisterHooks(X402.Core.Roles.Hooks.IServerHooks hooks) { }
 
-  // ─── tests ─────────────────────────────────────────────────────────────
+        public Task<VerifyResponse> VerifyPaymentAsync(PaymentPayload payload, string? facilitatorUrl = null) =>
+            Task.FromResult(_verifyResult
+                ? new VerifyResponse(true, null, "0xpayer")
+                : new VerifyResponse(false, _invalidReason ?? "INVALID", null));
 
-  [Fact]
-  public async Task UnprotectedRoute_PassesThrough()
-  {
-    var nextCalled = false;
-    var mw = MakeMiddleware(_ => { nextCalled = true; return Task.CompletedTask; });
-    var ctx = MakeContext("/api/public");
+        public Task<SettleResponse> SettlePaymentAsync(PaymentPayload payload, string? facilitatorUrl = null) =>
+            Task.FromResult(new SettleResponse(true, "0xtx", "eip155:84532", null, null, null));
 
-    await mw.InvokeAsync(ctx);
+        public Task<PaymentRequirements?> GetRequirementsAsync(string resourcePath) =>
+            Task.FromResult(_stored);
+    }
 
-    Assert.True(nextCalled);
-    Assert.Equal(200, ctx.Response.StatusCode); // default
-  }
+    private static X402PaymentMiddleware MakeMiddleware(
+        RequestDelegate next,
+        FakeResourceServer? server = null,
+        X402MiddlewareOptions? options = null)
+    {
+        server ??= new FakeResourceServer();
+        options ??= MakeOptions();
+        var enforcer = new X402PaymentEnforcer(server);
+        return new X402PaymentMiddleware(next, options, server, enforcer);
+    }
 
-  [Fact]
-  public async Task ProtectedRoute_NoPaymentHeader_Returns402()
-  {
-    var mw = MakeMiddleware(_ => Task.CompletedTask);
-    var ctx = MakeContext("/api/premium");
+    // ─── tests ─────────────────────────────────────────────────────────────
 
-    await mw.InvokeAsync(ctx);
+    [Fact]
+    public async Task UnprotectedRoute_PassesThrough()
+    {
+        var nextCalled = false;
+        var mw = MakeMiddleware(_ => { nextCalled = true; return Task.CompletedTask; });
+        var ctx = MakeContext("/api/public");
 
-    Assert.Equal(402, ctx.Response.StatusCode);
-    Assert.True(ctx.Response.Headers.ContainsKey(X402HttpHeaders.PaymentRequired),
-        "402 response must include PaymentRequired header");
-  }
+        await mw.InvokeAsync(ctx);
 
-  [Fact]
-  public async Task ProtectedRouteSubPath_NoPaymentHeader_Returns402()
-  {
-    var mw = MakeMiddleware(_ => Task.CompletedTask);
-    var ctx = MakeContext("/api/premium/video/42");
+        Assert.True(nextCalled);
+        Assert.Equal(200, ctx.Response.StatusCode); // default
+    }
 
-    await mw.InvokeAsync(ctx);
+    [Fact]
+    public async Task ProtectedRoute_NoPaymentHeader_Returns402()
+    {
+        var mw = MakeMiddleware(_ => Task.CompletedTask);
+        var ctx = MakeContext("/api/premium");
 
-    Assert.Equal(402, ctx.Response.StatusCode);
-  }
+        await mw.InvokeAsync(ctx);
 
-  [Fact]
-  public async Task ProtectedRoute_ValidPayment_CallsNext()
-  {
-    var nextCalled = false;
-    var mw = MakeMiddleware(_ => { nextCalled = true; return Task.CompletedTask; },
-                            new FakeResourceServer(verifyResult: true));
-    var ctx = MakeContext("/api/premium", MakePaymentHeader());
+        Assert.Equal(402, ctx.Response.StatusCode);
+        Assert.True(ctx.Response.Headers.ContainsKey(X402HttpHeaders.PaymentRequired),
+            "402 response must include PaymentRequired header");
+    }
 
-    await mw.InvokeAsync(ctx);
+    [Fact]
+    public async Task ProtectedRouteSubPath_NoPaymentHeader_Returns402()
+    {
+        var mw = MakeMiddleware(_ => Task.CompletedTask);
+        var ctx = MakeContext("/api/premium/video/42");
 
-    Assert.True(nextCalled);
-    Assert.Equal(200, ctx.Response.StatusCode);
-  }
+        await mw.InvokeAsync(ctx);
 
-  [Fact]
-  public async Task ProtectedRoute_ValidPayment_AttachesPayerToContext()
-  {
-    var mw = MakeMiddleware(_ => Task.CompletedTask, new FakeResourceServer(verifyResult: true));
-    var ctx = MakeContext("/api/premium", MakePaymentHeader());
+        Assert.Equal(402, ctx.Response.StatusCode);
+    }
 
-    await mw.InvokeAsync(ctx);
+    [Fact]
+    public async Task ProtectedRoute_ValidPayment_CallsNext()
+    {
+        var nextCalled = false;
+        var mw = MakeMiddleware(_ => { nextCalled = true; return Task.CompletedTask; },
+                                new FakeResourceServer(verifyResult: true));
+        var ctx = MakeContext("/api/premium", MakePaymentHeader());
 
-    Assert.Equal("0xpayer", ctx.Items[X402HttpContextKeys.Payer]);
-  }
+        await mw.InvokeAsync(ctx);
 
-  [Fact]
-  public async Task ProtectedRoute_AlreadyVerified_SkipsMiddlewareEnforcement()
-  {
-    var nextCalled = false;
-    var mw = MakeMiddleware(_ => { nextCalled = true; return Task.CompletedTask; });
-    var ctx = MakeContext("/api/premium");
-    ctx.Items[X402HttpContextKeys.Verified] = true;
+        Assert.True(nextCalled);
+        Assert.Equal(200, ctx.Response.StatusCode);
+    }
 
-    await mw.InvokeAsync(ctx);
+    [Fact]
+    public async Task ProtectedRoute_ValidPayment_AttachesPayerToContext()
+    {
+        var mw = MakeMiddleware(_ => Task.CompletedTask, new FakeResourceServer(verifyResult: true));
+        var ctx = MakeContext("/api/premium", MakePaymentHeader());
 
-    Assert.True(nextCalled);
-    Assert.Equal(200, ctx.Response.StatusCode);
-  }
+        await mw.InvokeAsync(ctx);
 
-  [Fact]
-  public async Task ProtectedRoute_InvalidPayment_Returns403()
-  {
-    var mw = MakeMiddleware(_ => Task.CompletedTask,
-                            new FakeResourceServer(verifyResult: false, invalidReason: "EXPIRED"));
-    var ctx = MakeContext("/api/premium", MakePaymentHeader());
+        Assert.Equal("0xpayer", ctx.Items[X402HttpContextKeys.Payer]);
+    }
 
-    await mw.InvokeAsync(ctx);
+    [Fact]
+    public async Task ProtectedRoute_AlreadyVerified_SkipsMiddlewareEnforcement()
+    {
+        var nextCalled = false;
+        var mw = MakeMiddleware(_ => { nextCalled = true; return Task.CompletedTask; });
+        var ctx = MakeContext("/api/premium");
+        ctx.Items[X402HttpContextKeys.Verified] = true;
 
-    Assert.Equal(403, ctx.Response.StatusCode);
-    Assert.Equal("EXPIRED", ctx.Response.Headers["x402-invalid-reason"].ToString());
-  }
+        await mw.InvokeAsync(ctx);
 
-  [Fact]
-  public async Task ProtectedRoute_MalformedPaymentHeader_Returns403()
-  {
-    var mw = MakeMiddleware(_ => Task.CompletedTask);
-    var ctx = MakeContext("/api/premium", "not-valid-base64!!!");
+        Assert.True(nextCalled);
+        Assert.Equal(200, ctx.Response.StatusCode);
+    }
 
-    await mw.InvokeAsync(ctx);
+    [Fact]
+    public async Task ProtectedRoute_InvalidPayment_Returns403()
+    {
+        var mw = MakeMiddleware(_ => Task.CompletedTask,
+                                new FakeResourceServer(verifyResult: false, invalidReason: "EXPIRED"));
+        var ctx = MakeContext("/api/premium", MakePaymentHeader());
 
-    Assert.Equal(403, ctx.Response.StatusCode);
-  }
+        await mw.InvokeAsync(ctx);
 
-  [Fact]
-  public async Task MultipleProtectedRoutes_EachMatchesCorrectly()
-  {
-    var options = new X402MiddlewareOptions()
-        .Protect("/api/premium", MakeRequirements())
-        .Protect("/api/exclusive", MakeRequirements());
-    var mw = MakeMiddleware(_ => Task.CompletedTask, new FakeResourceServer(), options);
+        Assert.Equal(403, ctx.Response.StatusCode);
+        Assert.Equal("EXPIRED", ctx.Response.Headers["x402-invalid-reason"].ToString());
+    }
 
-    var ctxPremium = MakeContext("/api/premium");
-    var ctxExclusive = MakeContext("/api/exclusive");
-    var ctxPublic = MakeContext("/api/public");
+    [Fact]
+    public async Task ProtectedRoute_MalformedPaymentHeader_Returns403()
+    {
+        var mw = MakeMiddleware(_ => Task.CompletedTask);
+        var ctx = MakeContext("/api/premium", "not-valid-base64!!!");
 
-    await mw.InvokeAsync(ctxPremium);
-    await mw.InvokeAsync(ctxExclusive);
-    await mw.InvokeAsync(ctxPublic);
+        await mw.InvokeAsync(ctx);
 
-    Assert.Equal(402, ctxPremium.Response.StatusCode);
-    Assert.Equal(402, ctxExclusive.Response.StatusCode);
-    Assert.Equal(200, ctxPublic.Response.StatusCode);
-  }
+        Assert.Equal(403, ctx.Response.StatusCode);
+    }
 
-  [Fact]
-  public async Task ProtectedRoute_PaymentRequired_HeaderContainsEncodedRequirements()
-  {
-    var mw = MakeMiddleware(_ => Task.CompletedTask);
-    var ctx = MakeContext("/api/premium");
+    [Fact]
+    public async Task MultipleProtectedRoutes_EachMatchesCorrectly()
+    {
+        var options = new X402MiddlewareOptions()
+            .Protect("/api/premium", MakeRequirements())
+            .Protect("/api/exclusive", MakeRequirements());
+        var mw = MakeMiddleware(_ => Task.CompletedTask, new FakeResourceServer(), options);
 
-    await mw.InvokeAsync(ctx);
+        var ctxPremium = MakeContext("/api/premium");
+        var ctxExclusive = MakeContext("/api/exclusive");
+        var ctxPublic = MakeContext("/api/public");
 
-    Assert.Equal(402, ctx.Response.StatusCode);
-    var rawHeader = ctx.Response.Headers[X402HttpHeaders.PaymentRequired].ToString();
-    Assert.NotEmpty(rawHeader);
+        await mw.InvokeAsync(ctxPremium);
+        await mw.InvokeAsync(ctxExclusive);
+        await mw.InvokeAsync(ctxPublic);
 
-    var decoded = HeaderCodec.Decode<PaymentRequired>(rawHeader);
-    Assert.NotNull(decoded);
-    Assert.Equal(2, decoded.X402Version);
-    Assert.NotEmpty(decoded.Accepts);
-    Assert.Equal("evm-exact", decoded.Accepts[0].Scheme);
-  }
+        Assert.Equal(402, ctxPremium.Response.StatusCode);
+        Assert.Equal(402, ctxExclusive.Response.StatusCode);
+        Assert.Equal(200, ctxPublic.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProtectedRoute_PaymentRequired_HeaderContainsEncodedRequirements()
+    {
+        var mw = MakeMiddleware(_ => Task.CompletedTask);
+        var ctx = MakeContext("/api/premium");
+
+        await mw.InvokeAsync(ctx);
+
+        Assert.Equal(402, ctx.Response.StatusCode);
+        var rawHeader = ctx.Response.Headers[X402HttpHeaders.PaymentRequired].ToString();
+        Assert.NotEmpty(rawHeader);
+
+        var decoded = HeaderCodec.Decode<PaymentRequired>(rawHeader);
+        Assert.NotNull(decoded);
+        Assert.Equal(2, decoded.X402Version);
+        Assert.NotEmpty(decoded.Accepts);
+        Assert.Equal("evm-exact", decoded.Accepts[0].Scheme);
+    }
 }

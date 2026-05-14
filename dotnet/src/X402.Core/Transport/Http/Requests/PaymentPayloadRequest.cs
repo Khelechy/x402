@@ -8,18 +8,18 @@ namespace X402.Core.Transport.Http.Requests;
 /// </summary>
 public class PaymentPayloadRequest
 {
-  /// <summary>
-  /// The signed payment payload from client.
-  /// </summary>
-  public required PaymentPayload Payload { get; init; }
+    /// <summary>
+    /// The signed payment payload from client.
+    /// </summary>
+    public required PaymentPayload Payload { get; init; }
 
-  /// <summary>
-  /// HTTP method for this request (typically POST or PUT).
-  /// </summary>
-  public string HttpMethod { get; init; } = "POST";
+    /// <summary>
+    /// HTTP method for this request (typically POST or PUT).
+    /// </summary>
+    public string HttpMethod { get; init; } = "POST";
 
-  /// <summary>
-  /// Optional custom headers to include.
-  /// </summary>
-  public Dictionary<string, string> Headers { get; init; } = [];
+    /// <summary>
+    /// Optional custom headers to include.
+    /// </summary>
+    public Dictionary<string, string> Headers { get; init; } = [];
 }

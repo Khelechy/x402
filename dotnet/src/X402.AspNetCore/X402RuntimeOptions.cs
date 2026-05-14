@@ -5,8 +5,8 @@ namespace X402.AspNetCore;
 /// </summary>
 public sealed class X402RuntimeOptions
 {
-  /// <summary>
-  /// Global facilitator URL used when a route does not provide an override.
-  /// </summary>
-  public string? DefaultFacilitatorUrl { get; init; }
+    /// <summary>
+    /// Global facilitator URL used when a route does not provide an override.
+    /// </summary>
+    public string? DefaultFacilitatorUrl { get; init; }
 }

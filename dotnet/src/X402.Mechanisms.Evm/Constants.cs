@@ -5,8 +5,8 @@ namespace X402.Mechanisms.Evm;
 /// </summary>
 public static class EvmSchemes
 {
-  /// <summary>"evm-exact" — v2 protocol scheme identifier.</summary>
-  public const string Exact = "evm-exact";
+    /// <summary>"evm-exact" — v2 protocol scheme identifier.</summary>
+    public const string Exact = "evm-exact";
 }
 
 /// <summary>
@@ -14,7 +14,7 @@ public static class EvmSchemes
 /// </summary>
 public static class EvmCaip2
 {
-  public const string Wildcard = "eip155:*";
+    public const string Wildcard = "eip155:*";
 }
 
 /// <summary>
@@ -22,14 +22,14 @@ public static class EvmCaip2
 /// </summary>
 public static class EvmChains
 {
-  public const string Mainnet = "eip155:1";
-  public const string BaseSepolia = "eip155:84532";
-  public const string Base = "eip155:8453";
-  public const string OptimismSepolia = "eip155:11155420";
-  public const string Optimism = "eip155:10";
-  public const string ArbitrumOne = "eip155:42161";
-  public const string ArbitrumSepolia = "eip155:421614";
-  public const string Sepolia = "eip155:11155111";
+    public const string Mainnet = "eip155:1";
+    public const string BaseSepolia = "eip155:84532";
+    public const string Base = "eip155:8453";
+    public const string OptimismSepolia = "eip155:11155420";
+    public const string Optimism = "eip155:10";
+    public const string ArbitrumOne = "eip155:42161";
+    public const string ArbitrumSepolia = "eip155:421614";
+    public const string Sepolia = "eip155:11155111";
 }
 
 /// <summary>
@@ -38,17 +38,17 @@ public static class EvmChains
 /// </summary>
 public static class EvmExactErrors
 {
-  public const string InvalidScheme = "invalid_scheme";
-  public const string NetworkMismatch = "network_mismatch";
-  public const string InvalidPayload = "invalid_payload";
-  public const string MissingSignature = "missing_signature";
-  public const string MissingEip712Domain = "missing_eip712_domain";
-  public const string RecipientMismatch = "recipient_mismatch";
-  public const string AmountMismatch = "amount_mismatch";
-  public const string InvalidRequiredAmount = "invalid_required_amount";
-  public const string ValidBeforeExpired = "valid_before_expired";
-  public const string ValidAfterInFuture = "valid_after_in_future";
-  public const string InvalidSignatureFormat = "invalid_signature_format";
-  public const string SignatureVerificationFailed = "signature_verification_failed";
-  public const string InvalidNetworkFormat = "invalid_network_format";
+    public const string InvalidScheme = "invalid_scheme";
+    public const string NetworkMismatch = "network_mismatch";
+    public const string InvalidPayload = "invalid_payload";
+    public const string MissingSignature = "missing_signature";
+    public const string MissingEip712Domain = "missing_eip712_domain";
+    public const string RecipientMismatch = "recipient_mismatch";
+    public const string AmountMismatch = "amount_mismatch";
+    public const string InvalidRequiredAmount = "invalid_required_amount";
+    public const string ValidBeforeExpired = "valid_before_expired";
+    public const string ValidAfterInFuture = "valid_after_in_future";
+    public const string InvalidSignatureFormat = "invalid_signature_format";
+    public const string SignatureVerificationFailed = "signature_verification_failed";
+    public const string InvalidNetworkFormat = "invalid_network_format";
 }

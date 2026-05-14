@@ -16,56 +16,56 @@ namespace X402.AspNetCore;
 /// </summary>
 public sealed class X402PaymentMiddleware
 {
-  private readonly RequestDelegate _next;
-  private readonly X402MiddlewareOptions _options;
-  private readonly X402PaymentEnforcer _enforcer;
+    private readonly RequestDelegate _next;
+    private readonly X402MiddlewareOptions _options;
+    private readonly X402PaymentEnforcer _enforcer;
 
-  public X402PaymentMiddleware(
-      RequestDelegate next,
-      X402MiddlewareOptions options,
-      IX402ResourceServer server,
-      X402PaymentEnforcer enforcer)
-  {
-    _next = next;
-    _options = options;
-    _enforcer = enforcer;
-
-    // Pre-initialise the server with every protected route's requirements.
-    foreach (var route in options.ProtectedRoutes)
+    public X402PaymentMiddleware(
+        RequestDelegate next,
+        X402MiddlewareOptions options,
+        IX402ResourceServer server,
+        X402PaymentEnforcer enforcer)
     {
-      server.Initialize(route.Path, route.Requirements);
-    }
-  }
+        _next = next;
+        _options = options;
+        _enforcer = enforcer;
 
-  public async Task InvokeAsync(HttpContext context)
-  {
-    // Annotation/filter-based protection already verified this request.
-    if (context.Items.TryGetValue(X402HttpContextKeys.Verified, out var verifiedObj)
-        && verifiedObj is bool verified
-        && verified)
-    {
-      await _next(context);
-      return;
+        // Pre-initialise the server with every protected route's requirements.
+        foreach (var route in options.ProtectedRoutes)
+        {
+            server.Initialize(route.Path, route.Requirements);
+        }
     }
 
-    var requestPath = context.Request.Path.Value ?? string.Empty;
-    var route = _options.Match(requestPath);
-
-    // Route not protected — let it through.
-    if (route is null)
+    public async Task InvokeAsync(HttpContext context)
     {
-      await _next(context);
-      return;
+        // Annotation/filter-based protection already verified this request.
+        if (context.Items.TryGetValue(X402HttpContextKeys.Verified, out var verifiedObj)
+            && verifiedObj is bool verified
+            && verified)
+        {
+            await _next(context);
+            return;
+        }
+
+        var requestPath = context.Request.Path.Value ?? string.Empty;
+        var route = _options.Match(requestPath);
+
+        // Route not protected — let it through.
+        if (route is null)
+        {
+            await _next(context);
+            return;
+        }
+
+        var allowed = await _enforcer.EnforceAsync(
+          context,
+          route.Requirements,
+          route.Path,
+          route.FacilitatorUrl ?? _options.DefaultFacilitatorUrl);
+        if (!allowed)
+            return;
+
+        await _next(context);
     }
-
-    var allowed = await _enforcer.EnforceAsync(
-      context,
-      route.Requirements,
-      route.Path,
-      route.FacilitatorUrl ?? _options.DefaultFacilitatorUrl);
-    if (!allowed)
-      return;
-
-    await _next(context);
-  }
 }

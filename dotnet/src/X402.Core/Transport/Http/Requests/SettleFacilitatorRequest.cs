@@ -7,18 +7,18 @@ namespace X402.Core.Transport.Http.Requests;
 /// </summary>
 public class SettleFacilitatorRequest
 {
-  /// <summary>
-  /// The payment payload to settle.
-  /// </summary>
-  public required PaymentPayload Payload { get; init; }
+    /// <summary>
+    /// The payment payload to settle.
+    /// </summary>
+    public required PaymentPayload Payload { get; init; }
 
-  /// <summary>
-  /// Facilitator endpoint URL.
-  /// </summary>
-  public required string FacilitatorUrl { get; init; }
+    /// <summary>
+    /// Facilitator endpoint URL.
+    /// </summary>
+    public required string FacilitatorUrl { get; init; }
 
-  /// <summary>
-  /// Optional custom headers for authenticating with facilitator.
-  /// </summary>
-  public Dictionary<string, string> Headers { get; init; } = [];
+    /// <summary>
+    /// Optional custom headers for authenticating with facilitator.
+    /// </summary>
+    public Dictionary<string, string> Headers { get; init; } = [];
 }

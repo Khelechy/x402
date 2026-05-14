@@ -8,18 +8,18 @@ namespace X402.Core.Transport.Http.Responses;
 /// </summary>
 public class PaymentSuccessResponse
 {
-  /// <summary>
-  /// The accepted payment payload.
-  /// </summary>
-  public required PaymentPayload Payload { get; init; }
+    /// <summary>
+    /// The accepted payment payload.
+    /// </summary>
+    public required PaymentPayload Payload { get; init; }
 
-  /// <summary>
-  /// HTTP status code (typically 200).
-  /// </summary>
-  public int StatusCode { get; init; } = 200;
+    /// <summary>
+    /// HTTP status code (typically 200).
+    /// </summary>
+    public int StatusCode { get; init; } = 200;
 
-  /// <summary>
-  /// Custom response headers.
-  /// </summary>
-  public Dictionary<string, string> Headers { get; init; } = [];
+    /// <summary>
+    /// Custom response headers.
+    /// </summary>
+    public Dictionary<string, string> Headers { get; init; } = [];
 }

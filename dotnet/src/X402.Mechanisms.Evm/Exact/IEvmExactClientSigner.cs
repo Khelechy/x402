@@ -7,15 +7,15 @@ namespace X402.Mechanisms.Evm.Exact;
 /// </summary>
 public interface IEvmExactClientSigner
 {
-  /// <summary>
-  /// Returns the payer address that will authorize payments.
-  /// </summary>
-  Task<string> GetAddressAsync();
+    /// <summary>
+    /// Returns the payer address that will authorize payments.
+    /// </summary>
+    Task<string> GetAddressAsync();
 
-  /// <summary>
-  /// Signs an EIP-3009 <c>TransferWithAuthorization</c> payload for the supplied domain.
-  /// </summary>
-  Task<string> SignTransferWithAuthorizationAsync(Eip3009Authorization authorization, Eip712DomainData domain);
+    /// <summary>
+    /// Signs an EIP-3009 <c>TransferWithAuthorization</c> payload for the supplied domain.
+    /// </summary>
+    Task<string> SignTransferWithAuthorizationAsync(Eip3009Authorization authorization, Eip712DomainData domain);
 }
 
 /// <summary>

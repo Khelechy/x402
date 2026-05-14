@@ -7,18 +7,18 @@ namespace X402.Core.Transport.Http.Responses;
 /// </summary>
 public class FacilitatorVerifyResponse
 {
-  /// <summary>
-  /// Verification result from facilitator.
-  /// </summary>
-  public required VerifyResponse Result { get; init; }
+    /// <summary>
+    /// Verification result from facilitator.
+    /// </summary>
+    public required VerifyResponse Result { get; init; }
 
-  /// <summary>
-  /// HTTP status code from facilitator response (typically 200).
-  /// </summary>
-  public int StatusCode { get; init; } = 200;
+    /// <summary>
+    /// HTTP status code from facilitator response (typically 200).
+    /// </summary>
+    public int StatusCode { get; init; } = 200;
 
-  /// <summary>
-  /// Custom headers from facilitator response.
-  /// </summary>
-  public Dictionary<string, string> Headers { get; init; } = [];
+    /// <summary>
+    /// Custom headers from facilitator response.
+    /// </summary>
+    public Dictionary<string, string> Headers { get; init; } = [];
 }

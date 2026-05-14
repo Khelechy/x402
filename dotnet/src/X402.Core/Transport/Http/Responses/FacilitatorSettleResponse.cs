@@ -7,18 +7,18 @@ namespace X402.Core.Transport.Http.Responses;
 /// </summary>
 public class FacilitatorSettleResponse
 {
-  /// <summary>
-  /// Settlement result from facilitator.
-  /// </summary>
-  public required SettleResponse Result { get; init; }
+    /// <summary>
+    /// Settlement result from facilitator.
+    /// </summary>
+    public required SettleResponse Result { get; init; }
 
-  /// <summary>
-  /// HTTP status code from facilitator response (typically 200).
-  /// </summary>
-  public int StatusCode { get; init; } = 200;
+    /// <summary>
+    /// HTTP status code from facilitator response (typically 200).
+    /// </summary>
+    public int StatusCode { get; init; } = 200;
 
-  /// <summary>
-  /// Custom headers from facilitator response.
-  /// </summary>
-  public Dictionary<string, string> Headers { get; init; } = [];
+    /// <summary>
+    /// Custom headers from facilitator response.
+    /// </summary>
+    public Dictionary<string, string> Headers { get; init; } = [];
 }
