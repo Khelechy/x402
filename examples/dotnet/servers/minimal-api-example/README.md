@@ -30,11 +30,11 @@ Expected result:
 - HTTP status `402 Payment Required`
 - A `PAYMENT-REQUIRED` header containing the Base64-encoded payment requirements
 
-Once you have a signed payment payload from an x402 client, retry the request with the `PAYMENT-RESPONSE` header:
+Once you have a signed payment payload from an x402 client, retry the request with the `PAYMENT-SIGNATURE` header:
 
 ```bash
 curl -i http://localhost:5000/weather \
-  -H 'PAYMENT-RESPONSE: <signed-base64-payment-payload>'
+  -H 'PAYMENT-SIGNATURE: <signed-base64-payment-payload>'
 ```
 
 Expected success result:

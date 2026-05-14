@@ -32,7 +32,7 @@ After generating a signed payment with a client, retry the request:
 
 ```bash
 curl -i http://localhost:5000/premium/data \
-  -H 'PAYMENT-RESPONSE: <signed-base64-payment-payload>'
+  -H 'PAYMENT-SIGNATURE: <signed-base64-payment-payload>'
 ```
 
 The controller responds with JSON that includes the verified payer:

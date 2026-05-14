@@ -34,13 +34,13 @@ curl -i http://localhost:5000/api/basic
 Expected result:
 
 - `/unprotected` returns `200 OK`
-- `/api/basic` and `/api/premium` return `402 Payment Required` until a valid `PAYMENT-RESPONSE` header is supplied
+- `/api/basic` and `/api/premium` return `402 Payment Required` until a valid `PAYMENT-SIGNATURE` header is supplied
 
 Retry a protected route with a signed payment payload:
 
 ```bash
 curl -i http://localhost:5000/api/premium \
-  -H 'PAYMENT-RESPONSE: <signed-base64-payment-payload>'
+  -H 'PAYMENT-SIGNATURE: <signed-base64-payment-payload>'
 ```
 
 ## Why this style

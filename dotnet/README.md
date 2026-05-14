@@ -25,7 +25,7 @@ The standard flow:
 |---|---|---|
 | `X402.Core` | `net8.0`, `net10.0` | Protocol models, roles, HTTP header codec, hooks |
 | `X402.AspNetCore` | `net8.0`, `net10.0` | ASP.NET Core middleware and DI extensions |
-| `X402.Mechanisms.Evm` | `net8.0`, `net10.0` | EVM Exact mechanism — EIP-712 + EIP-3009 off-chain verifier |
+| `X402.Mechanisms.Evm` | `net8.0`, `net10.0` | EVM Exact mechanism — EIP-712 hashing, buyer-side payload creation, and EIP-3009 verification |
 
 ---
 
@@ -291,11 +291,11 @@ dotnet/
 ├── src/
 │   ├── X402.Core/                  Protocol models (V1/V2), roles, header codec, hooks
 │   ├── X402.AspNetCore/            Middleware, DI extensions
-│   └── X402.Mechanisms.Evm/        EIP-712 hasher, ECDSA verifier, evm-exact verifier
+│   └── X402.Mechanisms.Evm/        EIP-712 hasher, client signers/schemes, ECDSA verifier, evm-exact verifier
 └── tests/
-    ├── X402.Core.Tests/            61 tests
-    ├── X402.AspNetCore.Tests/       9 tests
-    └── X402.Mechanisms.Evm.Tests/  11 tests
+    ├── X402.Core.Tests/            Core unit tests
+    ├── X402.AspNetCore.Tests/      ASP.NET Core middleware and DI tests
+    └── X402.Mechanisms.Evm.Tests/  EVM mechanism tests
 ```
 
 ---
